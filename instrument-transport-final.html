@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚛 楽器運搬チェック - チーム版</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --primary: #1a472a;
+      --primary-light: #2d6a40;
+      --primary-lighter: #4a9d5f;
+      --accent: #ef6c00;
+      --accent-light: #ffb74d;
+      --success: #2e7d32;
+      --danger: #c62828;
+      --neutral-50: #f5f5f5;
+      --neutral-100: #eeeeee;
+      --neutral-200: #e0e0e0;
+      --neutral-300: #bdbdbd;
+      --neutral-600: #424242;
+      --neutral-700: #212121;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      background: linear-gradient(135deg, #0f2417 0%, #1a3a2e 100%);
+      color: var(--neutral-700);
+      line-height: 1.6;
+    }
+
+    /* ======= SCREENS ======= */
+    .screen {
+      display: none;
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .screen.active {
+      display: flex;
+      z-index: 10;
+    }
+
+    /* ======= LOGIN SCREEN ======= */
+    #loginScreen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #0f2417 0%, #1a3a2e 100%);
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 12px;
+      padding: 3rem;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-logo {
+      text-align: center;
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+      letter-spacing: 0.05em;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--neutral-600);
+      margin-bottom: 2.5rem;
+    }
+
+    .login-form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .login-label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.6rem;
+      color: var(--neutral-700);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid var(--neutral-200);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      letter-spacing: 0.15em;
+      font-weight: 600;
+    }
+
+    .login-input:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 4px rgba(74, 157, 95, 0.1);
+    }
+
+    .login-input::placeholder {
+      color: var(--neutral-300);
+      letter-spacing: 0.1em;
+    }
+
+    .login-error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: rgba(198, 40, 40, 0.1);
+      border-radius: 8px;
+      border-left: 4px solid var(--danger);
+      display: none;
+    }
+
+    .login-error.show {
+      display: block;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 4px 12px rgba(26, 71, 42, 0.2);
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(26, 71, 42, 0.3);
+    }
+
+    .login-btn:active {
+      transform: scale(0.98);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-hint {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--neutral-200);
+      font-size: 0.85rem;
+      color: var(--neutral-600);
+    }
+
+    .login-hint-label {
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ======= APP SCREEN ======= */
+    #appScreen {
+      flex-direction: column;
+      position: relative;
+    }
+
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ======= HEADER ======= */
+    header {
+      background: rgba(26, 71, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 2px solid var(--primary-light);
+      padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .logo-main {
+      font-size: 1.4rem;
+      letter-spacing: 0.05em;
+    }
+
+    .logo-sub {
+      font-size: 0.6rem;
+      color: var(--accent-light);
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .online-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .logout-btn {
+      padding: 0.7rem 1.4rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: white;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .logout-btn:hover {
+      background: rgba(198, 40, 40, 0.2);
+      border-color: var(--danger);
+      color: #ff9999;
+    }
+
+    /* ======= MAIN CONTENT ======= */
+    main {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      gap: 2rem;
+      overflow-y: auto;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .sidebar {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ======= CARDS ======= */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--neutral-100);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-lighter);
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    /* ======= PROGRESS ======= */
+    .progress-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .progress-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--neutral-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .progress-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--neutral-200);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* ======= SECTION GRID ======= */
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.8rem;
+    }
+
+    .section-item {
+      background: var(--neutral-50);
+      border-radius: 8px;
+      padding: 0.8rem;
+      border: 1px solid var(--neutral-200);
+      transition: all 0.2s ease;
+    }
+
+    .section-item:hover {
+      border-color: var(--primary-lighter);
+      background: linear-gradient(135deg, rgba(45, 106, 64, 0.05), transparent);
+    }
+
+    .section-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--primary);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.3rem;
+    }
+
+    .section-count {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--neutral-700);
+    }
+
+    /* ======= BUTTONS ======= */
+    .btn {
+      padding: 0.7rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 40px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-lighter) 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+      border: 1.5px solid var(--neutral-200);
+    }
+
+    .btn-secondary:hover {
+      background: var(--neutral-200);
+    }
+
+    .btn-danger {
+      background: rgba(198, 40, 40, 0.1);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(198, 40, 40, 0.15);
+    }
+
+    .btn-small {
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75rem;
+      min-height: 32px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ======= FORMS ======= */
+    .form-group {
+      display: flex;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .input-text {
+      flex: 1;
+      padding: 0.7rem 0.8rem;
+      border: 1.5px solid var(--neutral-200);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-text:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 3px rgba(74, 157, 95, 0.1);
+    }
+
+    .template-select {
+      width: 100%;
+      padding: 0.7rem 0.8rem;
+      border: 1.5px solid var(--neutral-200);
+      border-radius: 8px;
+      font-family: 'IBM Plex Sans JP', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: white;
+    }
+
+    .template-select:focus {
+      outline: none;
+      border-color: var(--primary-lighter);
+      box-shadow: 0 0 0 3px rgba(74, 157, 95, 0.1);
+    }
+
+    /* ======= CHECKLIST ======= */
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      background: white;
+      border: 1.5px solid var(--neutral-100);
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .checklist-item:hover {
+      border-color: var(--primary-lighter);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .checklist-item.done {
+      background: linear-gradient(135deg, rgba(46, 125, 50, 0.05), transparent);
+      border-color: var(--success);
+    }
+
+    .checkbox {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      border: 2px solid var(--neutral-300);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+      background: white;
+    }
+
+    .checklist-item.done .checkbox {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+      font-weight: 700;
+    }
+
+    .checklist-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .checklist-name {
+      font-weight: 600;
+      color: var(--neutral-700);
+      word-break: break-word;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .checklist-item.done .checklist-name {
+      color: var(--neutral-400);
+      text-decoration: line-through;
+      text-decoration-color: var(--success);
+    }
+
+    .checklist-meta {
+      font-size: 0.75rem;
+      color: var(--neutral-400);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .delete-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--neutral-300);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .delete-btn:hover {
+      color: var(--danger);
+      background: rgba(198, 40, 40, 0.1);
+      border-radius: 4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--neutral-400);
+    }
+
+    .empty-state-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.8rem;
+      opacity: 0.6;
+    }
+
+    /* ======= MODAL ======= */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--neutral-700);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+
+    /* ======= ONLINE USERS ======= */
+    .online-users {
+      background: var(--neutral-50);
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .online-users-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--primary);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.8rem;
+    }
+
+    .user-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid var(--neutral-200);
+      font-size: 0.85rem;
+    }
+
+    .user-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+    }
+
+    /* ======= TOAST ======= */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--primary);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      font-weight: 600;
+      z-index: 999;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ======= RESPONSIVE ======= */
+    @media (max-width: 1024px) {
+      main {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        gap: 1rem;
+      }
+
+      .sidebar > .card {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .section-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem;
+      }
+
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      main {
+        padding: 1rem;
+      }
+
+      .sidebar {
+        flex-direction: column;
+      }
+
+      .sidebar > .card {
+        flex: none;
+      }
+
+      .form-group {
+        flex-direction: column;
+      }
+
+      .login-card {
+        margin: 0 1rem;
+      }
+    }
+
+    @media print {
+      header, .sidebar, .form-group, .delete-btn, main {
+        display: none;
+      }
+
+      body {
+        background: white;
+      }
+
+      .checklist-item {
+        page-break-inside: avoid;
+        border: 1px solid var(--neutral-200);
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="screen active">
+    <div class="login-card">
+      <div class="login-logo">🚛</div>
+      <div class="login-title">楽器運搬チェック</div>
+      <div class="login-subtitle">チーム共有版</div>
+
+      <div id="loginError" class="login-error"></div>
+
+      <div class="login-form-group">
+        <label class="login-label">パスワード</label>
+        <input 
+          type="password" 
+          class="login-input" 
+          id="passwordInput" 
+          placeholder="パスワードを入力"
+          onkeypress="if(event.key==='Enter') login();"
+        >
+      </div>
+
+      <button class="login-btn" id="loginBtn" onclick="login()">ログイン</button>
+
+      <div class="login-hint">
+        <div class="login-hint-label">🔑 パスワード</div>
+        <div style="font-family: 'Space Mono', monospace; font-weight: 600; letter-spacing: 0.1em; margin-top: 0.5rem;">
+          ONGAKUDO
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SCREEN -->
+  <div id="appScreen" class="screen">
+    <div class="container">
+      <!-- HEADER -->
+      <header>
+        <div class="header-content">
+          <a href="#" class="logo">
+            <span>🚛</span>
+            <div class="logo-text">
+              <div class="logo-main">楽器運搬</div>
+              <div class="logo-sub">CHECKLIST</div>
+            </div>
+          </a>
+          <div class="header-right">
+            <div class="online-badge">
+              <span class="online-dot"></span>
+              <span id="userCount">0人</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">ログアウト</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <main>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+          <!-- PROGRESS -->
+          <div class="card">
+            <div class="card-title">📊 進捗状況</div>
+            <div class="progress-section">
+              <div>
+                <div class="progress-stat">
+                  <span class="progress-label">完了状況</span>
+                  <span class="progress-value" id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="progress-stat">
+                <span class="progress-label">リスト</span>
+                <span class="progress-value" id="progressCount">0 / 0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTIONS -->
+          <div class="card">
+            <div class="card-title">🎼 セクション別</div>
+            <div class="section-grid" id="sectionGrid"></div>
+          </div>
+
+          <!-- ONLINE USERS -->
+          <div class="card">
+            <div class="online-users-title">👥 オンラインメンバー</div>
+            <div class="user-list" id="userList">
+              <div style="font-size: 0.85rem; color: var(--neutral-400);">読み込み中...</div>
+            </div>
+          </div>
+
+          <!-- TEMPLATES -->
+          <div class="card">
+            <div class="card-title">📂 テンプレート</div>
+            <select class="template-select" id="templateSelect">
+              <option value="">— テンプレートを選択 —</option>
+            </select>
+            <div style="display: flex; gap: 0.6rem; margin-top: 0.8rem;">
+              <button class="btn btn-primary btn-small" style="flex: 1;" onclick="loadTemplate()">読込</button>
+              <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="openSaveModal()">保存</button>
+              <button class="btn btn-danger btn-small" style="flex: 1;" onclick="deleteTemplate()">削除</button>
+            </div>
+            <button class="btn btn-secondary" style="width: 100%; margin-top: 0.8rem;" onclick="loadSampleItems()">
+              🎺 定番楽器を追加
+            </button>
+          </div>
+        </aside>
+
+        <!-- CONTENT -->
+        <section class="content">
+          <!-- ADD ITEM -->
+          <div class="card">
+            <div class="card-title">➕ 楽器・機材を追加</div>
+            <div class="form-group">
+              <input type="text" class="input-text" id="itemInput" placeholder="例：コントラバス..." onkeypress="if(event.key==='Enter') addItem();">
+              <button class="btn btn-primary" onclick="addItem()">追加</button>
+            </div>
+          </div>
+
+          <!-- CHECKLIST -->
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">✅ チェックリスト</div>
+            <div id="checklist" class="checklist">
+              <div class="empty-state">
+                <div class="empty-state-icon">📦</div>
+                <div>楽器がまだ追加されていません</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.8rem; margin-top: 1rem;" id="bulkActions" style="display: none;">
+              <button class="btn btn-secondary" style="flex: 1;" onclick="uncheckAll()">全チェック解除</button>
+              <button class="btn btn-danger" style="flex: 1;" onclick="deleteAll()">全削除</button>
+              <button class="btn btn-primary" style="flex: 1;" onclick="window.print()">🖨️ 印刷</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="saveModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">💾 テンプレートを保存</div>
+      <input type="text" class="input-text" id="templateNameInput" placeholder="例：コンクール用..." onkeypress="if(event.key==='Enter') saveTemplate();">
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeSaveModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveTemplate()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title" id="confirmTitle">確認</div>
+      <div id="confirmMessage" style="margin-bottom: 1.5rem;"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">キャンセル</button>
+        <button class="btn btn-danger" id="confirmButton" onclick="executeConfirmAction()">実行</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ======================== FIREBASE CONFIG ========================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyC1T0wDbnZpmkYGu8HeWNRvjAZ9QuGvg9I",
+      authDomain: "sui-cone.firebaseapp.com",
+      projectId: "sui-cone",
+      storageBucket: "sui-cone.firebasestorage.app",
+      messagingSenderId: "48223905436",
+      appId: "1:48223905436:web:24478fe3386efe9c97ef59"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+
+    // ======================== SAMPLE DATA ========================
+    const SAMPLE_ITEMS = [
+      '【木管】フルート', '【木管】ピッコロ', '【木管】オーボエ', '【木管】クラリネット',
+      '【木管】バスクラリネット', '【金管】トランペット', '【金管】ホルン',
+      '【金管】トロンボーン', '【金管】チューバ', '【打楽器】ティンパニ',
+      '【打楽器】バスドラム', '【打楽器】シンバル', '【弦楽器】コントラバス',
+      '【備品】譜面台', '【備品】椅子', '【備品】スピーカー'
+    ];
+
+    const SECTIONS = [
+      { name: '木管', parts: ['木管', 'フルート', 'ピッコロ', 'オーボエ', 'クラリネット', 'サックス'] },
+      { name: '金管', parts: ['金管', 'トランペット', 'ホルン', 'トロンボーン', 'チューバ', 'ユーフォ'] },
+      { name: '打楽器', parts: ['打楽器', 'ティンパニ', 'バスドラム', 'シンバル', 'スネア'] },
+      { name: 'その他', parts: ['弦楽器', 'コンバス', '備品', '椅子', '譜面台', 'スピーカー'] }
+    ];
+
+    const CORRECT_PASSWORD = 'ONGAKUDO';
+
+    // ======================== STATE ========================
+    let isLoggedIn = false;
+    let sessionId = null;
+    let items = [];
+    let templates = {};
+    let onlineUsers = {};
+    let unsubscribe = {
+      items: null,
+      users: null,
+      templates: null
+    };
+    let confirmAction = null;
+
+    // ======================== LOGIN ========================
+    function login() {
+      const password = document.getElementById('passwordInput').value;
+      const btn = document.getElementById('loginBtn');
+      
+      if (password === CORRECT_PASSWORD) {
+        document.getElementById('loginError').classList.remove('show');
+        isLoggedIn = true;
+        sessionId = 'user_' + Date.now();
+        
+        document.getElementById('loginScreen').classList.remove('active');
+        document.getElementById('appScreen').classList.add('active');
+        
+        initApp();
+      } else {
+        const errorEl = document.getElementById('loginError');
+        errorEl.textContent = '❌ パスワードが違います';
+        errorEl.classList.add('show');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    }
+
+    function logout() {
+      if (confirm('ログアウトしますか？')) {
+        isLoggedIn = false;
+        cleanup();
+        document.getElementById('appScreen').classList.remove('active');
+        document.getElementById('loginScreen').classList.add('active');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    }
+
+    // ======================== APP INIT ========================
+    function initApp() {
+      setupItemsListener();
+      setupUsersListener();
+      setupTemplatesListener();
+    }
+
+    function cleanup() {
+      if (unsubscribe.items) unsubscribe.items();
+      if (unsubscribe.users) unsubscribe.users();
+      if (unsubscribe.templates) unsubscribe.templates();
+      if (sessionId) {
+        db.collection('transport_app').doc('sessions').collection('active').doc(sessionId).delete();
+      }
+    }
+
+    // ======================== ITEMS ========================
+    function setupItemsListener() {
+      if (unsubscribe.items) unsubscribe.items();
+
+      unsubscribe.items = db.collection('transport_app').doc('data').collection('items')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snap => {
+          items = [];
+          snap.forEach(doc => {
+            items.unshift({ id: doc.id, ...doc.data() });
+          });
+          renderChecklist();
+          updateProgress();
+          renderSectionGrid();
+        }, err => {
+          console.error('Items error:', err);
+          showToast('⚠️ Firestore接続エラー');
+        });
+    }
+
+    function addItem() {
+      const input = document.getElementById('itemInput');
+      const name = input.value.trim();
+      if (!name) return;
+
+      db.collection('transport_app').doc('data').collection('items').add({
+        name: name,
+        done: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: 'ユーザー'
+      }).then(() => {
+        input.value = '';
+        showToast('✅ 追加しました');
+      }).catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function toggleItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      db.collection('transport_app').doc('data').collection('items').doc(id).update({
+        done: !item.done
+      }).catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function deleteItem(id) {
+      db.collection('transport_app').doc('data').collection('items').doc(id).delete()
+        .catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function uncheckAll() {
+      const checked = items.filter(i => i.done);
+      if (checked.length === 0) {
+        showToast('❌ チェック済みがありません');
+        return;
+      }
+
+      openConfirmModal('全チェック解除', `${checked.length}件を解除しますか？`, () => {
+        const batch = db.batch();
+        checked.forEach(item => {
+          batch.update(
+            db.collection('transport_app').doc('data').collection('items').doc(item.id),
+            { done: false }
+          );
+        });
+        batch.commit();
+      });
+    }
+
+    function deleteAll() {
+      if (items.length === 0) {
+        showToast('❌ リストが空です');
+        return;
+      }
+
+      openConfirmModal('全削除', `${items.length}件を削除しますか？`, () => {
+        const batch = db.batch();
+        items.forEach(item => {
+          batch.delete(
+            db.collection('transport_app').doc('data').collection('items').doc(item.id)
+          );
+        });
+        batch.commit();
+      });
+    }
+
+    function loadSampleItems() {
+      if (!confirm(`${SAMPLE_ITEMS.length}件を追加しますか？`)) return;
+
+      const batch = db.batch();
+      SAMPLE_ITEMS.forEach(name => {
+        const ref = db.collection('transport_app').doc('data').collection('items').doc();
+        batch.set(ref, {
+          name: name,
+          done: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: 'サンプル'
+        });
+      });
+      batch.commit().then(() => showToast(`🎺 ${SAMPLE_ITEMS.length}件追加しました`));
+    }
+
+    // ======================== TEMPLATES ========================
+    function setupTemplatesListener() {
+      if (unsubscribe.templates) unsubscribe.templates();
+
+      unsubscribe.templates = db.collection('transport_app').doc('data').collection('templates')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snap => {
+          templates = {};
+          snap.forEach(doc => {
+            templates[doc.data().name] = { items: doc.data().items, id: doc.id };
+          });
+          renderTemplateSelect();
+        });
+    }
+
+    function renderTemplateSelect() {
+      const sel = document.getElementById('templateSelect');
+      const names = Object.keys(templates).sort();
+      sel.innerHTML = '<option value="">— テンプレートを選択 —</option>' +
+        names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    }
+
+    function openSaveModal() {
+      document.getElementById('templateNameInput').value = '';
+      document.getElementById('saveModal').classList.add('active');
+      document.getElementById('templateNameInput').focus();
+    }
+
+    function closeSaveModal() {
+      document.getElementById('saveModal').classList.remove('active');
+    }
+
+    function saveTemplate() {
+      const name = document.getElementById('templateNameInput').value.trim();
+      if (!name) {
+        showToast('❌ テンプレート名を入力してください');
+        return;
+      }
+
+      db.collection('transport_app').doc('data').collection('templates').add({
+        name: name,
+        items: items.map(i => ({ name: i.name, createdBy: i.createdBy })),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        closeSaveModal();
+        showToast(`💾 「${name}」を保存しました`);
+      }).catch(err => showToast('❌ エラー: ' + err.message));
+    }
+
+    function loadTemplate() {
+      const name = document.getElementById('templateSelect').value;
+      if (!name) {
+        showToast('❌ テンプレートを選択してください');
+        return;
+      }
+
+      if (!confirm(`「${name}」を読み込みますか？`)) return;
+
+      const template = templates[name] || {};
+      const itemList = template.items || [];
+      const batch = db.batch();
+
+      itemList.forEach(itemData => {
+        const ref = db.collection('transport_app').doc('data').collection('items').doc();
+        batch.set(ref, {
+          name: itemData.name,
+          done: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: itemData.createdBy || 'テンプレート'
+        });
+      });
+
+      batch.commit().then(() => showToast(`📥 「${name}」を読み込みました`));
+    }
+
+    function deleteTemplate() {
+      const name = document.getElementById('templateSelect').value;
+      if (!name) {
+        showToast('❌ テンプレートを選択してください');
+        return;
+      }
+
+      if (!confirm(`「${name}」を削除しますか？`)) return;
+
+      const template = templates[name];
+      if (template && template.id) {
+        db.collection('transport_app').doc('data').collection('templates').doc(template.id).delete();
+      }
+    }
+
+    // ======================== USERS ========================
+    function setupUsersListener() {
+      if (unsubscribe.users) unsubscribe.users();
+
+      // Set online status
+      const userRef = db.collection('transport_app').doc('sessions').collection('active').doc(sessionId);
+      userRef.set({
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Delete on page unload
+      window.addEventListener('beforeunload', () => {
+        userRef.delete();
+      });
+
+      unsubscribe.users = db.collection('transport_app').doc('sessions').collection('active')
+        .onSnapshot(snap => {
+          onlineUsers = {};
+          snap.forEach(doc => {
+            onlineUsers[doc.id] = doc.data();
+          });
+          renderOnlineUsers();
+        });
+    }
+
+    function renderOnlineUsers() {
+      const count = Object.keys(onlineUsers).length;
+      document.getElementById('userCount').textContent = count + '人';
+
+      const list = document.getElementById('userList');
+      if (count === 0) {
+        list.innerHTML = '<div style="font-size: 0.85rem; color: var(--neutral-400);">メンバーなし</div>';
+        return;
+      }
+
+      list.innerHTML = `
+        <div class="user-badge">
+          <span class="user-dot"></span>
+          <span>${count}人がオンライン</span>
+        </div>
+      `;
+    }
+
+    // ======================== UI ========================
+    function getSectionForItem(name) {
+      const lower = name.toLowerCase();
+      for (let section of SECTIONS) {
+        for (let part of section.parts) {
+          if (lower.includes(part.toLowerCase())) return section.name;
+        }
+      }
+      return 'その他';
+    }
+
+    function renderChecklist() {
+      const container = document.getElementById('checklist');
+      const bulkActions = document.getElementById('bulkActions');
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div>楽器がまだ追加されていません</div>
+          </div>
+        `;
+        bulkActions.style.display = 'none';
+        return;
+      }
+
+      bulkActions.style.display = 'flex';
+
+      container.innerHTML = items.map(item => `
+        <div class="checklist-item ${item.done ? 'done' : ''}">
+          <button class="checkbox" onclick="toggleItem('${item.id}')">
+            ${item.done ? '✓' : ''}
+          </button>
+          <div class="checklist-content">
+            <div class="checklist-name">${escapeHtml(item.name)}</div>
+            <div class="checklist-meta">
+              <span>${item.createdBy || 'ユーザー'}</span>
+            </div>
+          </div>
+          <button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>
+        </div>
+      `).join('');
+    }
+
+    function updateProgress() {
+      const total = items.length;
+      const done = items.filter(i => i.done).length;
+      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressPercent').textContent = pct + '%';
+      document.getElementById('progressCount').textContent = `${done} / ${total}`;
+    }
+
+    function renderSectionGrid() {
+      const grid = document.getElementById('sectionGrid');
+      const sectionData = {};
+
+      SECTIONS.forEach(sec => {
+        sectionData[sec.name] = { total: 0, done: 0 };
+      });
+
+      items.forEach(item => {
+        const section = getSectionForItem(item.name);
+        if (sectionData[section]) {
+          sectionData[section].total++;
+          if (item.done) sectionData[section].done++;
+        }
+      });
+
+      grid.innerHTML = Object.entries(sectionData)
+        .filter(([, data]) => data.total > 0)
+        .map(([name, data]) => {
+          const pct = data.total === 0 ? 0 : Math.round((data.done / data.total) * 100);
+          return `
+            <div class="section-item">
+              <div class="section-name">${escapeHtml(name)}</div>
+              <div class="section-count">${data.done}/${data.total}</div>
+              <div style="font-size: 0.75rem; color: var(--neutral-400);">${pct}%</div>
+            </div>
+          `;
+        }).join('');
+    }
+
+    // ======================== MODALS ========================
+    function openConfirmModal(title, message, action) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      confirmAction = action;
+      document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.remove('active');
+      confirmAction = null;
+    }
+
+    function executeConfirmAction() {
+      if (confirmAction) confirmAction();
+      closeConfirmModal();
+    }
+
+    // ======================== UTILS ========================
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>
